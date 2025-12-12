@@ -3,6 +3,7 @@ use std::{env, fs, io};
 
 use cfb::CompoundFile;
 use clap::{Parser, Subcommand};
+use clio::ClioPath;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -39,8 +40,17 @@ enum Command {
         #[clap(short, long)]
         /// Dump all streams found in CFB file.
         all: bool,
+
+        /// Overwrite the output directory if the directory name already exists.
+        #[clap(long, default_value_t = false)]
+        overwrite: bool,
+
+        /// Path to CFB file to dump
+        input: ClioPath,
+
         /// Path to dump destination
-        path: String,
+        #[arg(value_parser = clap::value_parser!(ClioPath), default_value_t = ClioPath::new(env::current_dir().unwrap()).unwrap())]
+        output: ClioPath,
     },
 }
 
@@ -167,12 +177,16 @@ fn main() {
                 }
             }
         }
-        Command::Dump { path, all } => {
-            let mut comp = cfb::open(&path).unwrap();
+        Command::Dump { input, output, all, overwrite } => {
+            let mut comp = cfb::open(input.to_path_buf()).unwrap();
             let mut entries = comp.read_root_storage().collect::<Vec<_>>();
             if all {
-                let output_dir = env::current_dir().unwrap().join("root");
-                fs::create_dir(&output_dir).unwrap();
+                let output_dir = output.to_path_buf();
+                if overwrite && output_dir.exists() {
+                    println!("Removing old {:#?} directory", output_dir);
+                    fs::remove_dir_all(&output_dir).unwrap();
+                }
+                fs::create_dir_all(&output_dir).unwrap();
                 let root_entry = &comp.root_entry();
                 dump_entry_recursively(&mut comp, root_entry, &output_dir);
                 return;

@@ -667,7 +667,12 @@ impl<F: Read + Write + Seek> CompoundFile<F> {
             DirEntry::unallocated().write_to(&mut inner)?;
         }
 
-        let sectors = Sectors::new(version, 3 * sector_len as u64, inner);
+        // Determine how many bytes are currently allocated so we can let the
+        // sector wrapper struct know. The currently allocated sectors are: The
+        // header sector, the FAT sector, and the DirEntry sector.
+        let num_sectors = 3;
+        let inner_len = num_sectors * sector_len as u64;
+        let sectors = Sectors::new(version, inner_len, inner);
         let allocator = Allocator::new(
             sectors,
             difat_sector_ids,
@@ -677,12 +682,14 @@ impl<F: Read + Write + Seek> CompoundFile<F> {
         )?;
         let directory = Directory::new(
             allocator,
+            // CFB requires there be a root directory entry.
             vec![root_dir_entry],
-            1,
+            header.first_dir_sector,
             Validation::Strict,
         )?;
         let minialloc = MiniAllocator::new(
             directory,
+            // Mini-fat initially contains no values
             vec![],
             consts::END_OF_CHAIN,
             Validation::Strict,
