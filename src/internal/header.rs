@@ -61,7 +61,17 @@ impl Header {
                 magic
             );
         }
-        reader.read_exact(&mut [0u8; 16])?; // reserved field
+
+        let mut clsid = [0u8; 16];
+        reader.read_exact(&mut clsid)?;
+        if validation == Validation::Strict
+            && !clsid.iter().all(|b| *b == 0x00)
+        {
+            invalid_data!(
+                "Invalid CFB file (clsid field is not all zeros): {:x?}",
+                clsid
+            )
+        }
 
         // Read the version number, but don't try to interpret it until after
         // we've checked the byte order mark.
@@ -109,7 +119,16 @@ impl Header {
         }
 
         // TODO: require reserved field to be all zeros under strict validation
-        reader.read_exact(&mut [0u8; 6])?; // reserved field
+        let mut reserved = [0u8; 6];
+        reader.read_exact(&mut reserved)?;
+        if validation == Validation::Strict
+            && !reserved.iter().all(|b| *b == 0x00)
+        {
+            invalid_data!(
+                "Invalid CFB file (reserved field is not all zeros): {:x?}",
+                clsid
+            )
+        }
 
         // According to section 2.2 of the MS-CFB spec, "If Major Version is 3,
         // the Number of Directory Sectors MUST be zero."  However, under

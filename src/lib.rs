@@ -57,10 +57,12 @@ use uuid::Uuid;
 
 use crate::internal::consts;
 use crate::internal::{
-    Allocator, DirEntry, Directory, EntriesOrder, Header, MiniAllocator,
-    ObjType, SectorInit, Sectors, Timestamp, Validation,
+    Allocator, DirEntry, Directory, EntriesOrder, MiniAllocator, ObjType,
+    SectorInit, Sectors, Timestamp,
 };
-pub use crate::internal::{Entries, Entry, Stream, Version};
+pub use crate::internal::{
+    Entries, Entry, Header, Stream, Validation, Version,
+};
 
 #[macro_use]
 mod internal;
